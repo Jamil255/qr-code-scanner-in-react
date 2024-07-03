@@ -3,25 +3,23 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 
 const Scanner = () => {
   const [scanResult, setScanResult] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner('reader', {
-      qrbox: {
-        width: 250,
-        height: 250,
-      },
-      fps: 5,
-    });
+    if (isScanning) {
+      const scanner = new Html5QrcodeScanner('reader', {
+        qrbox: {
+          width: 250,
+          height: 250,
+        },
+        fps: 5,
+      });
 
-    let isScanning = true;
-
-    const success = (result) => {
-      if (isScanning) {
-        scanner.clear().catch(error => {
+      const success = (result) => {
+        scanner.clear().catch((error) => {
           console.error('Failed to clear scanner:', error);
         });
         setScanResult(result);
-        isScanning = false;
 
         // Retrieve current data from local storage
         const storedData = localStorage.getItem('scan');
@@ -30,29 +28,39 @@ const Scanner = () => {
         // Push the new scan result and update local storage
         array.push(result);
         localStorage.setItem('scan', JSON.stringify(array));
-      }
-    };
+        
+        setIsScanning(false);
+      };
 
-    const error = (err) => {
-      console.warn('QR code scan error:', err);
-    };
+      const error = (err) => {
+        console.warn('QR code scan error:', err);
+      };
 
-    scanner.render(success, error);
+      scanner.render(success, error);
 
-    return () => {
-      scanner.clear().catch(error => {
-        console.error('Failed to clear scanner on unmount:', error);
-      });
-    };
-  }, []);
+      return () => {
+        scanner.clear().catch((error) => {
+          console.error('Failed to clear scanner on unmount:', error);
+        });
+      };
+    }
+  }, [isScanning]);
+
+  const startScan = () => {
+    setScanResult(null); // Clear previous scan result
+    setIsScanning(true);
+  };
+
+  const stopScan = () => {
+    setIsScanning(false);
+  };
 
   return (
     <div>
-      {scanResult ? (
-        <div>{scanResult}</div>
-      ) : (
-        <div id="reader" style={{ width: '300px', margin: 'auto' }}></div>
-      )}
+      <button onClick={startScan}>Start QR Code Scanner</button>
+      <button onClick={stopScan}>Stop QR Code Scanner</button>
+      {scanResult && <div>Scan Result: {scanResult}</div>}
+      {isScanning && <div id="reader" style={{ width: '300px', margin: 'auto' }}></div>}
     </div>
   );
 };
